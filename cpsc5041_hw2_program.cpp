@@ -4,14 +4,14 @@
 using namespace std;
 
 void SortTestScoreNameArrays(int* testScoreArr, string* testNameArr, int size);
+float TestScoreAverage(int* testScoreArr, int size);
 
 int main()
 {
 	int testScoreNameArrSize; 
 	string lastName;
 	int testScore;
-	int totalTestScores = 0;
-	int average = 0;
+	float average = 0;
 	int *testScoreArr;
 	string *testNameArr;
 
@@ -42,19 +42,20 @@ int main()
 
 	cout << "The test scores in ascending order are: " << endl;
 
-	cout << "Name" << setw(10) << "Score" << endl;
-
-	
+	cout << "Name" << setw(10) << "Score" << endl;	
 	for (int i = 0; i < testScoreNameArrSize; i++)
 	{		
 		cout << testNameArr[i] << setw(10) << testScoreArr[i] << endl;
-		totalTestScores += testScoreNameArr[i]; 
-
-		average = totalTestScores/testScoreArrSize;
 	}
-
 	cout << endl;
-	cout << “Class average is ” << setprecision(2) << fixed << average << endl;
+
+	*average = TestScoreAverage(testScoreArr, testScoreNameArrSize);
+
+	cout << "Class average is " << setprecision(2) << fixed << *average << endl;
+
+	delete average;
+	delete testNameArr;
+	delete testScoreArr;
 
 	return 0;
 }
@@ -80,7 +81,20 @@ void SortTestScoreNameArrays(int* testScoreArr, string* testNameArr, int size)
 			}
 		}			
 	}
+}
 
+float TestScoreAverage(int* testScoreArr, int size)
+{
+	int totalTestScores = 0;
+	float average = new float;
 
+	for (int i = 0; i < size; i++)
+	{		
+		totalTestScores += testScoreArr[i];
+	}
+
+	average = (float)totalTestScores/size;
+
+	return average;
 }
 
