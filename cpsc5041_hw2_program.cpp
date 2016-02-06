@@ -3,7 +3,7 @@
 #include <iomanip>
 using namespace std;
 
-void SortTestScoreNameArrays(int* testScoreArr, string* testNameArr);
+void SortTestScoreNameArrays(int* testScoreArr, string* testNameArr, int size);
 
 int main()
 {
@@ -16,15 +16,15 @@ int main()
 	string *testNameArr;
 
 	
-	cout << "How many test scores will you enter?" << setw(4);
+	cout << "How many test scores will you enter? ";
 	cin >> testScoreNameArrSize;
 
 	//dynamically allocate arrays & save address in pointer
 	testScoreArr = new int[testScoreNameArrSize];
-	testNameArr = new int[testScoreNameArrSize];
+	testNameArr = new string[testScoreNameArrSize];
 
 	//initialize elements of arrays
-	for(int i = 1; i < testScoreNameArrSize; i++)
+	for(int i = 1; i <= testScoreNameArrSize; i++)
 	{
 		cout << "Enter student " << i << "'s name: ";
 		cin >> lastName;
@@ -34,13 +34,13 @@ int main()
 		testScoreArr[i-1] = testScore;
 		testNameArr[i-1] = lastName;
 
-		cout >> "";
+		cout << endl;
 	}
 
 	//sort arrays by test score in increasing order
-	SortTestScoreNameArrays(&testScoreArr, &testNameArr);
+	SortTestScoreNameArrays(testScoreArr, testNameArr, testScoreNameArrSize);
 
-	cout << "The test scores in ascending order, and their average, are: ";
+	cout << "The test scores in ascending order are: " << endl;
 
 	cout << "Name" << setw(10) << "Score" << endl;
 
@@ -48,9 +48,9 @@ int main()
 	for (int i = 0; i < testScoreNameArrSize; i++)
 	{		
 		cout << testNameArr[i] << setw(10) << testScoreArr[i] << endl;
-		totalTestScores += testScoreArr[i]; 
+		totalTestScores += testScoreNameArr[i]; 
 
-		//average = totalTestScores/testScoreArrSize;
+		average = totalTestScores/testScoreArrSize;
 	}
 
 	cout << endl;
@@ -59,24 +59,24 @@ int main()
 	return 0;
 }
 
-void SortTestScoreNameArrays(int* testScoreArr, string* testNameArr)
+void SortTestScoreNameArrays(int* testScoreArr, string* testNameArr, int size)
 {
 	int tempInt = 0;
 	string tempString = "";
 
-	for (int i = 0; i < testScoreNameArrSize - 1; i++)
+	for (int i = 0; i < size - 1; i++)
 	{
-		for(int j = 1; j < testScoreArrSize; j++)
+		for(int j = 1; j < size; j++)
 		{
 			if(testScoreArr[i] > testScoreArr[j])
 			{
-				tempInt = *testScoreArr[i];				
-				*testScoreArr[i] = *testScoreArr[j];
-				*testScoreArr[j] = tempInt;
+				tempInt = testScoreArr[i];				
+				testScoreArr[i] = testScoreArr[j];
+				testScoreArr[j] = tempInt;
 
-				tempString = *testNameArr[i];
-				*testNameArr[i] = *testNameArr[j];
-				*testNameArr[j] = tempString;
+				tempString = testNameArr[i];
+				testNameArr[i] = testNameArr[j];
+				testNameArr[j] = tempString;
 			}
 		}			
 	}
