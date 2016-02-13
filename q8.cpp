@@ -1,3 +1,7 @@
+//Brandi Weekes
+//CPSC5041
+//q8.cpp
+
 #include <iostream>
 #include <string>
 #include <iomanip>
