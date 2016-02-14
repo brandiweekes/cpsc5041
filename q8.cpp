@@ -50,8 +50,13 @@ void CreateTeam(SoccerPlayer soccerTeam[])
 	{
 		//Get the soccer player's name
 		cout<<"Enter player " << i + 1 << "'s name: ";
-		cin.ignore();
-		getline(cin, soccerTeam[i].playerName);
+		cin >> soccerTeam[i].playerName;
+
+      ////attempted to use ignore getline:                                      
+      ////kept deleting first char of first entry                               
+      ////through research and debugging, could not figure it out               
+      //cin.ignore();                                                           
+      //getline(cin, soccerTeam[i].playerName);
 
 		//Get the soccer player's number
 		cout<<"Enter player " << i + 1 << "'s number: ";
@@ -82,9 +87,6 @@ void PrintRoster(SoccerPlayer team[])
 		setw(20) << left << team[i].playerNum << 
 		setw(20) << left << team[i].playerPtScore << endl;
 	}
-	cout << endl;
-
-	cout << team[0].playerName;
 }
 
 //Summary: adds the points scored by each player for a total team score
