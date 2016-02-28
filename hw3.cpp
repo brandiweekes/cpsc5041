@@ -14,8 +14,6 @@ struct Process
 	int arrivalTime; //time when task arrives (in millisec)
 	int burstTime; //time the task takes on CPU (in millisec)                  
 	int priority; //zero is highest priority
-	int startTime;
-	int terminationTime;
 };
 
 //sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
@@ -65,7 +63,7 @@ void ReadProcess(string input, vector<Process>& vectorP)
 
 void ShortestJobFirst(vector<Process>& vectorP)
 {
-	queue<Process> runningQ;
+	queue<Process> readyQ;
 	vector<Process> readyVector;
 	int numProcRemaining = vectorP.size();
 	cout << "numProcRemaining = " << numProcRemaining << endl;
@@ -103,35 +101,35 @@ void ShortestJobFirst(vector<Process>& vectorP)
 				<< readyVector[i].burstTime << endl;
 			}
 
-			// if(!readyVector.empty() && runningQ.empty())
-			// {
-			// 	runningQ.push(readyVector.back());
-			// 	readyVector.pop_back();
-			// }
-			// cout << "readyVector.size() = " << readyVector.size() << endl;
-			// for(unsigned int i = 0; i < readyVector.size(); i++)
-			// {
-			// 	cout << readyVector[i].processID << " " << readyVector[i].arrivalTime << " "
-			// 	<< readyVector[i].burstTime << endl;
-			//}
-			// cout << "runningQ.size() = " << runningQ.size() << endl;
-			// cout << "runningQ.front() = " << runningQ.front().processID << " " << 
-			// runningQ.front().burstTime << endl;
+			if(!readyVector.empty() && readyQ.empty())
+			{
+				readyQ.push(readyVector.back());
+				readyVector.pop_back();
+			}
+			cout << "readyVector.size() = " << readyVector.size() << endl;
+			for(unsigned int i = 0; i < readyVector.size(); i++)
+			{
+				cout << readyVector[i].processID << " " << readyVector[i].arrivalTime << " "
+				<< readyVector[i].burstTime << endl;
+			}
+			cout << "readyQ.size() = " << readyQ.size() << endl;
+			cout << "readyQ.front() = " << readyQ.front().processID << " " << 
+			readyQ.front().burstTime << endl;
 		}
-		else //if(vectorP.back().arrivalTime > timer && !vectorP.empty())
+		else if(vectorP.back().arrivalTime > timer && !vectorP.empty())
 		{
 			timer ++;
 		}
 
-			if(!readyVector.empty())
+			if(!runningQ.empty())
 			{
 
-				while(!readyVector.empty() && readyVector.back().arrivalTime <= timer)
+				while(!runningQ.empty() && runningQ.front().arrivalTime <= timer)
 				{
 					cout << "Time " << timer << " Process " << 
-					readyVector.back().processID << endl;
-					timer += readyVector.back().burstTime;
-					readyVector.pop_back();
+					runningQ.front().processID << endl;
+					timer += runningQ.front().burstTime;
+					runningQ.pop();
 					numProcRemaining--;
 				}
 			}
@@ -140,7 +138,7 @@ void ShortestJobFirst(vector<Process>& vectorP)
 				cout << "Time " << timer << " Idle " << endl;
 			}
 
-			cout << "readyVector.size() = " << readyVector.size() << endl;
+			cout << "runningQ.size() = " << runningQ.size() << endl;
 			cout << "timer = " << timer << "numProcRemaining = " << 
 			numProcRemaining << endl;
 
