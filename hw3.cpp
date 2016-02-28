@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <queue>
+#include <math.h>
 using namespace std;
 
 struct Process
@@ -69,38 +70,40 @@ void ShortestJobFirst(vector<Process>& vectorP)
 {
 	queue<Process> runningQ;
 	vector<Process> readyVector;
-	int numProcRemaining = vectorP.size();
-	cout << "numProcRemaining = " << numProcRemaining << endl;
+	vector<int> waitingTime;
 	int timer = 0;
+	int idleTimer = 0;
+	int max = 0;
+	int totalWait = 0;
+	float averageWait = 0;
 
 	//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
 	//sort by arrivalTime (if tie, burstTime is first, else pID)
 	sort (vectorP.begin(), vectorP.end(), compareProcessSJF);
-	
-	for(unsigned int i = 0; i < vectorP.size(); i++)
-	{
-		cout << vectorP[i].processID << " " << vectorP[i].arrivalTime << " "   
-		<< vectorP[i].burstTime << endl;
-	}
 
 	//check if any idle time before process begins
 	if(vectorP.back().arrivalTime > 0)
 	{
 		timer += vectorP.back().arrivalTime;
 		cout << "Time " << timer << " Idle " << endl;
+		idleTimer += (timer);
 	}
 
+	//begin simulation cycle: new --> ready --> running 
 	while(!vectorP.empty() || !readyVector.empty())
 	{
+		//queue vector by arrivalTime
 		while(vectorP.back().arrivalTime <= timer)
 		{
 			readyVector.push_back(vectorP.back());
 			vectorP.pop_back();
 		}
 
+		//if no Process has arrived during CPU running time
 		if(readyVector.empty())
 		{
 			cout << "Time " << timer << " Idle " << endl;
+			idleTimer += (vectorP.back().arrivalTime - timer);
 			timer = vectorP.back().arrivalTime;
 			continue; 
 		}
@@ -108,21 +111,40 @@ void ShortestJobFirst(vector<Process>& vectorP)
 		//only sorts the Processes in vector by burstTime
 		sort (readyVector.begin(), readyVector.end(), compareProcessBurst);
 
-		cout << "readyVector.size() = " << readyVector.size() << endl;
-		for(unsigned int i = 0; i < readyVector.size(); i++)
-		{
-			cout << readyVector[i].processID << " " << readyVector[i].arrivalTime << " "
-			<< readyVector[i].burstTime << endl;
-		}
-
 		//pop last Process from readyVector simulates running process on CPU
-		/*TO DO: set terminationTime in struct*/
 		timer += readyVector.back().burstTime;
-		cout << readyVector.back().processID << " " << readyVector.back().arrivalTime << " "
-			<< readyVector.back().burstTime << endl;
+		
+		//calculating waiting time, saved to vector --> waitingTime
+		readyVector.back().terminationTime = timer;
+		readyVector.back().turnaroundTime = 
+			readyVector.back().terminationTime - readyVector.back().arrivalTime;
+		readyVector.back().waitingTime = 
+			readyVector.back().turnaroundTime - readyVector.back().burstTime;
+		waitingTime.push_back(readyVector.back().waitingTime);
+		
+		//print message each time a different process is scheduled on CPU
+		cout << "Time " << timer - readyVector.back().burstTime << 
+			" Process " << readyVector.back().processID << endl;
 		readyVector.pop_back();
 	}
 
+	//find worst wait time, and add total wait time
+	for(unsigned int i = 0; i < waitingTime.size(); i++)
+	{
+		if(waitingTime[i] > max)
+		{
+			max = waitingTime[i];
+		}
+		totalWait += waitingTime[i];
+	}
+	averageWait = (float)totalWait / waitingTime.size();
+
+	//print stats for SJF			
+	cout << "CPU Utilization: " << 
+		ceil(100 - ((float)idleTimer/(float)timer * 100)) << "%" << endl;
+	cout << "Average waiting time: " << setprecision(2) << fixed << 
+		averageWait << endl;
+	cout << "Worst-case waiting time: " << max << endl; 
 }
 
 int main(int argc, char* argv[])
