@@ -17,6 +17,7 @@ struct Process
 };
 
 //sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
+//ordering arrivalTime vs burstTime (lower processID breaks tie)
 bool compareProcessSJF(Process a, Process b) 
 {
 	if(a.arrivalTime == b.arrivalTime && a.burstTime != b.burstTime)
@@ -31,6 +32,13 @@ bool compareProcessSJF(Process a, Process b)
 	{
 		return (a.arrivalTime > b.arrivalTime);
 	}
+}
+
+//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
+//ordering by burstTime
+bool compareProcessBurst(Process a, Process b)
+{
+	return (a.burstTime > b.burstTime);
 }
 
 void ReadProcess(string input, vector<Process>& vectorP)
@@ -53,41 +61,51 @@ void ReadProcess(string input, vector<Process>& vectorP)
 	}
 }
 
-void ShortestJobFirst(vector<Process> vectorP)
+void ShortestJobFirst(vector<Process>& vectorP)
 {
-	// queue<Process> runningQ;
-	// vector<Process> readyVector;
-	// int numProcRemaining = vectorP.size();
-	// int vectorPindex = 0;
-	// int timer = 0;
+	queue<Process> readyQ;
+	vector<Process> readyVector;
+	int numProcRemaining = vectorP.size();
+	int timer;
 
 	//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
 	sort (vectorP.begin(), vectorP.end(), compareProcessSJF);
+	timer = vectorP.back().arrivalTime;
+	readyQ.push(vectorP.back());
 
-	for(unsigned int i = 0; i < vectorP.size(); i++)
-	{
-		readyQ.push(vectorP[i]);
-	}
 
 	while(numProcRemaining > 0)
 	{	 
-		if(timer == vectorP[vectorPindex].arrivalTime)
+		if(readyQ.empty())
 		{
-			readyQ.push(vectorP[vectorPindex]);
-			vectorPindex++;			 
+			cout << "Time " << timer << " Idle " << endl;
+		}
+		else if(!vectorP.empty())
+		{
+			while(timer == vectorP.back().arrivalTime)
+			{
+				readyVector.push_back(vectorP.back());
+				vectorP.pop_back();
+			}	 
+			//only sorts the Processes in vector by burstTime
+			sort (readyVector.begin(), readyVector.end(), compareProcessBurst);
+			
+			while(!readyVector.empty())
+			{
+				readyQ.push(readyVector.back());
+				readyVector.pop_back();
+			}			
 		}
 		if(!readyQ.empty())
 		{
 			cout << "Time " << timer << " Process " << 
 			readyQ.front().processID << endl;
+			timer += readyQ.front().burstTime;
+			readyQ.pop();
+			numProcRemaining--;
 		}
-		else
-		{
-			cout << "Time " << timer << " Idle " << endl;
-		}
-		
+		timer++;
 	}
-
 }
 
 int main(int argc, char* argv[])
