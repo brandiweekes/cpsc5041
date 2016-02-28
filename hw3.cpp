@@ -16,9 +16,20 @@ struct Process
 	int priority; //zero is highest priority
 };
 
-bool compareProcess(Process a, Process b) 
+bool compareProcessSJF(Process a, Process b) 
 {
-	return (a.arrivalTime < b.arrivalTime);
+	if(a.arrivalTime == b.arrivalTime && a.burstTime != b.burstTime)
+	{
+		return (a.burstTime < b.burstTime);
+	}
+	else if(a.arrivalTime == b.arrivalTime && a.burstTime == b.burstTime)
+	{
+		return (a.processID < b.processID);
+	}
+	else
+	{
+		return (a.arrivalTime < b.arrivalTime);
+	}
 }
 
 void ReadProcess(string input, vector<Process>& vectorP)
@@ -44,12 +55,37 @@ void ReadProcess(string input, vector<Process>& vectorP)
 void ShortestJobFirst(vector<Process> vectorP)
 {
 	queue<Process> readyQ;
+	int numProcRemaining = vectorP.size();
+	int vectorPindex = 0;
+	int timer = 0;
 
-	sort (vectorP.begin(), vectorP.end(), compareProcess);
+	//sort vectorP by FIFO --> vectorP[0] = first, vectorP[n-1] = last
+	sort (vectorP.begin(), vectorP.end(), compareProcessSJF);
+
 	for(unsigned int i = 0; i < vectorP.size(); i++)
 	{
-		cout << vectorP[i].processID <<" "<< vectorP[i].arrivalTime << endl;
+		readyQ.push(vectorP[i]);
 	}
+
+	while(numProcRemaining > 0)
+	{	 
+		if(timer == vectorP[vectorPindex].arrivalTime)
+		{
+			readyQ.push(vectorP[vectorPindex]);
+			vectorPindex++;			 
+		}
+		if(!readyQ.empty())
+		{
+			cout << "Time " << timer << " Process " << 
+			readyQ.front().processID << endl;
+		}
+		else
+		{
+			cout << "Time " << timer << " Idle " << endl;
+		}
+		
+	}
+
 }
 
 int main(int argc, char* argv[])
