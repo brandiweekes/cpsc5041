@@ -16,19 +16,20 @@ struct Process
 	int priority; //zero is highest priority
 };
 
+//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
 bool compareProcessSJF(Process a, Process b) 
 {
 	if(a.arrivalTime == b.arrivalTime && a.burstTime != b.burstTime)
 	{
-		return (a.burstTime < b.burstTime);
+		return (a.burstTime > b.burstTime);
 	}
 	else if(a.arrivalTime == b.arrivalTime && a.burstTime == b.burstTime)
 	{
-		return (a.processID < b.processID);
+		return (a.processID > b.processID);
 	}
 	else
 	{
-		return (a.arrivalTime < b.arrivalTime);
+		return (a.arrivalTime > b.arrivalTime);
 	}
 }
 
@@ -54,12 +55,13 @@ void ReadProcess(string input, vector<Process>& vectorP)
 
 void ShortestJobFirst(vector<Process> vectorP)
 {
-	queue<Process> readyQ;
-	int numProcRemaining = vectorP.size();
-	int vectorPindex = 0;
-	int timer = 0;
+	// queue<Process> runningQ;
+	// vector<Process> readyVector;
+	// int numProcRemaining = vectorP.size();
+	// int vectorPindex = 0;
+	// int timer = 0;
 
-	//sort vectorP by FIFO --> vectorP[0] = first, vectorP[n-1] = last
+	//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
 	sort (vectorP.begin(), vectorP.end(), compareProcessSJF);
 
 	for(unsigned int i = 0; i < vectorP.size(); i++)
