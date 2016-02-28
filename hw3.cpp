@@ -14,6 +14,8 @@ struct Process
 	int arrivalTime; //time when task arrives (in millisec)
 	int burstTime; //time the task takes on CPU (in millisec)                  
 	int priority; //zero is highest priority
+	int startTime;
+	int terminationTime;
 };
 
 //sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
@@ -63,49 +65,119 @@ void ReadProcess(string input, vector<Process>& vectorP)
 
 void ShortestJobFirst(vector<Process>& vectorP)
 {
-	queue<Process> readyQ;
+	queue<Process> runningQ;
 	vector<Process> readyVector;
 	int numProcRemaining = vectorP.size();
-	int timer;
+	cout << "numProcRemaining = " << numProcRemaining << endl;
+	int timer = 0;
 
 	//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
 	sort (vectorP.begin(), vectorP.end(), compareProcessSJF);
-	timer = vectorP.back().arrivalTime;
-	readyQ.push(vectorP.back());
+	
+	for(unsigned int i = 0; i < vectorP.size(); i++)
+	{
+		cout << vectorP[i].processID << " " << vectorP[i].arrivalTime << " "
+		<< vectorP[i].burstTime << endl;
+	}
 
 
 	while(numProcRemaining > 0)
-	{	 
-		if(readyQ.empty())
+	{
+
+
+		if(vectorP.back().arrivalTime <= timer && !vectorP.empty())
 		{
-			cout << "Time " << timer << " Idle " << endl;
-		}
-		else if(!vectorP.empty())
-		{
-			while(timer == vectorP.back().arrivalTime)
+			cout << "inside vectorP loop for arrivalTime pop to readyVector";
+			while(vectorP.back().arrivalTime <= timer)
 			{
 				readyVector.push_back(vectorP.back());
 				vectorP.pop_back();
-			}	 
+			}
 			//only sorts the Processes in vector by burstTime
 			sort (readyVector.begin(), readyVector.end(), compareProcessBurst);
-			
-			while(!readyVector.empty())
+
+			cout << "readyVector.size() = " << readyVector.size() << endl;
+			for(unsigned int i = 0; i < readyVector.size(); i++)
 			{
-				readyQ.push(readyVector.back());
-				readyVector.pop_back();
-			}			
+				cout << readyVector[i].processID << " " << readyVector[i].arrivalTime << " "
+				<< readyVector[i].burstTime << endl;
+			}
+
+			// if(!readyVector.empty() && runningQ.empty())
+			// {
+			// 	runningQ.push(readyVector.back());
+			// 	readyVector.pop_back();
+			// }
+			// cout << "readyVector.size() = " << readyVector.size() << endl;
+			// for(unsigned int i = 0; i < readyVector.size(); i++)
+			// {
+			// 	cout << readyVector[i].processID << " " << readyVector[i].arrivalTime << " "
+			// 	<< readyVector[i].burstTime << endl;
+			//}
+			// cout << "runningQ.size() = " << runningQ.size() << endl;
+			// cout << "runningQ.front() = " << runningQ.front().processID << " " << 
+			// runningQ.front().burstTime << endl;
 		}
-		if(!readyQ.empty())
+		else //if(vectorP.back().arrivalTime > timer && !vectorP.empty())
 		{
-			cout << "Time " << timer << " Process " << 
-			readyQ.front().processID << endl;
-			timer += readyQ.front().burstTime;
-			readyQ.pop();
-			numProcRemaining--;
+			timer ++;
 		}
-		timer++;
+
+			if(!readyVector.empty())
+			{
+
+				while(!readyVector.empty() && readyVector.back().arrivalTime <= timer)
+				{
+					cout << "Time " << timer << " Process " << 
+					readyVector.back().processID << endl;
+					timer += readyVector.back().burstTime;
+					readyVector.pop_back();
+					numProcRemaining--;
+				}
+			}
+			else // else if(readyQ.empty() && numProcRemaining > 0)
+			{
+				cout << "Time " << timer << " Idle " << endl;
+			}
+
+			cout << "readyVector.size() = " << readyVector.size() << endl;
+			cout << "timer = " << timer << "numProcRemaining = " << 
+			numProcRemaining << endl;
+
+		
 	}
+	// while(numProcRemaining > 0)
+	// {	 
+	// 	if(readyQ.empty())
+	// 	{
+	// 		cout << "Time " << timer << " Idle " << endl;
+	// 	}
+	// 	else if(!vectorP.empty())
+	// 	{
+	// 		while(timer == vectorP.back().arrivalTime)
+	// 		{
+	// 			readyVector.push_back(vectorP.back());
+	// 			vectorP.pop_back();
+	// 		}	 
+	// 		//only sorts the Processes in vector by burstTime
+	// 		sort (readyVector.begin(), readyVector.end(), compareProcessBurst);
+			
+	// 		while(!readyVector.empty())
+	// 		{
+	// 			readyQ.push(readyVector.back());
+	// 			readyVector.pop_back();
+	// 		}			
+	// 	}
+	// 	if(!readyQ.empty())
+	// 	{
+	// 		cout << "Time " << timer << " Process " << 
+	// 		readyQ.front().processID << endl;
+	// 		timer += readyQ.front().burstTime;
+	// 		readyQ.pop();
+	// 		numProcRemaining--;
+	// 	}
+	// 	timer++;
+	// }
 }
 
 int main(int argc, char* argv[])
