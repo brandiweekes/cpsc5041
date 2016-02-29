@@ -176,11 +176,135 @@ void ShortestJobFirst(vector<Process>& vectorP)
 	cout << "Worst-case waiting time: " << max << endl; 
 }
 
-/*TO DO: Why is the sort breaking????*/
+//code is folded! (must select the - --> edit --> code folding --> unfold)
+void ShortestRemainingTimeFirst(vector<Process>& vectorP)
+{
+	vector<Process> readyVector;
+	vector<int> arrivals;
+	vector<int> waitingTime;
+	int timer = 0;
+	int idleTimer = 0;
+	int max = 0;
+	int totalWait = 0;
+	float averageWait = 0;
+
+	//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
+	//sort by arrivalTime (if tie, burstTime is first, else pID)
+	sort (vectorP.begin(), vectorP.end(), compareProcessSJF);
+
+	for(unsigned int i = 0; i < vectorP.size(); i++)
+	{
+			arrivals.push_back(vectorP[i].arrivalTime);
+	}
+
+	cout << "printing arrivals: " << endl;
+	for(unsigned int i = 0; i < arrivals.size(); i++)
+	{
+		cout << arrivals[i] << endl;
+	} 
+
+
+
+	//check if any idle time before process begins
+	if(vectorP.back().arrivalTime > 0)
+	{
+		timer += vectorP.back().arrivalTime;
+		cout << "Time " << timer << " Idle " << endl;
+		idleTimer += (timer);		
+	}
+
+	
+
+	//begin simulation cycle: new --> ready --> running 
+	while(!vectorP.empty() || !readyVector.empty())
+	{
+		//removes arrivals that have occurred
+		while(arrivals.back() <= timer && !arrivals.empty())
+		{
+			arrivals.pop_back();
+		}
+
+		cout << "timer = " << timer << endl; 
+
+		if(!vectorP.empty())
+		{
+			//queue vector by arrivalTime
+			while(vectorP.back().arrivalTime <= timer)
+			{
+				cout << "Timer inside readyVec push: " << timer << endl;
+				readyVector.push_back(vectorP.back());
+				vectorP.pop_back();
+			}
+		}
+
+		//if no Process has arrived during CPU running time
+		if(readyVector.empty())
+		{
+			cout << "Time " << timer << " Idle " << endl;
+			idleTimer += (vectorP.back().arrivalTime - timer);
+			timer = vectorP.back().arrivalTime;
+			continue; 
+		}
+
+		//only sorts the Processes in vector by burstTime
+		sort (readyVector.begin(), readyVector.end(), compareProcessBurst);
+
+		//if the current process finish time is longer than a next arrival
+		if(timer + readyVector.back().burstTime > arrivals.back())
+		{
+			//calculate remaining burst time from current process
+			int oldBurstTime = readyVector.back().burstTime;
+			readyVector.back().burstTime = timer + readyVector.back().burstTime - arrivals.back();
+			int difference = oldBurstTime - readyVector.back().burstTime;
+			timer += difference;
+			cout << "PROCESS INTERRUPT: Time " << timer - difference << 
+			" Process " << readyVector.back().processID << endl;
+			continue;
+		}
+		else
+		{
+			//pop last Process from readyVector simulates running process on CPU
+			timer += readyVector.back().burstTime;
+
+		}
+
+		//calculating waiting time, saved to vector --> waitingTime
+		readyVector.back().terminationTime = timer;
+		readyVector.back().turnaroundTime = 
+			readyVector.back().terminationTime - readyVector.back().arrivalTime;
+		readyVector.back().waitingTime = 
+			readyVector.back().turnaroundTime - readyVector.back().burstTime;
+		waitingTime.push_back(readyVector.back().waitingTime);
+		
+		
+		//print message each time a different process is scheduled on CPU
+		cout << "PROCESS COMPLETE: Time " << timer  - readyVector.back().burstTime << 
+			" Process " << readyVector.back().processID << endl;
+		readyVector.pop_back();
+	}
+
+	//find worst wait time, and add total wait time
+	for(unsigned int i = 0; i < waitingTime.size(); i++)
+	{
+		if(waitingTime[i] > max)
+		{
+			max = waitingTime[i];
+		}
+		totalWait += waitingTime[i];
+	}
+	averageWait = (float)totalWait / waitingTime.size();
+
+	//print stats for SJF			
+	cout << "CPU Utilization: " << 
+		ceil(100 - ((float)idleTimer/(float)timer * 100)) << "%" << endl;
+	cout << "Average waiting time: " << setprecision(2) << fixed << 
+		averageWait << endl;
+	cout << "Worst-case waiting time: " << max << endl; 
+}
+
 //code is folded! (must select the - --> edit --> code folding --> unfold)
 void NonPreemptive(vector<Process>& vectorP)
 {
-	cout << "where am I??" << endl;
 	vector<Process> readyVector;
 	vector<int> waitingTime;
 	int timer = 0;
@@ -298,9 +422,9 @@ int main(int argc, char* argv[])
 
 	//ShortestJobFirst(processes);
 
-	//ShortestRemainingTimeFirst(processes);
+	ShortestRemainingTimeFirst(processes);
 
-	NonPreemptive(processes);
+	//NonPreemptive(processes);
 
 	//SchedulerSwitch(scheduleAlgoCall, processes);
 }
