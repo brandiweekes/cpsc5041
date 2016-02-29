@@ -15,9 +15,9 @@ struct Process
 	int arrivalTime; //time when task arrives (in millisec)
 	int burstTime; //time the task takes on CPU (in millisec)                  
 	int priority; //zero is highest priority
-	int terminationTime;
-	int waitingTime;
-	int turnaroundTime;
+	int terminationTime; //finishing time
+	int waitingTime; //turnaroundTime - burstTime
+	int turnaroundTime; //terminationTime - arrivalTime
 
 };
 
@@ -40,10 +40,35 @@ bool compareProcessSJF(Process a, Process b)
 }
 
 //sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
+//ordering arrivalTime vs priority (lower processID breaks tie)
+bool compareProcessNP(Process a, Process b)
+{
+	if(a.arrivalTime == b.arrivalTime && a.priority != b.priority)
+	{
+		return (a.priority > b.priority);
+	}
+	else if(a.arrivalTime == b.arrivalTime && a.priority == b.priority)
+	{
+		return (a.processID > b.processID);
+	}
+	else
+	{
+		return (a.arrivalTime > b.arrivalTime);
+	}
+}
+
+//sort readyVector by FILO --> vectorP[0] = last, vectorP[n-1] = first
 //ordering by burstTime
 bool compareProcessBurst(Process a, Process b)
 {
 	return (a.burstTime > b.burstTime);
+}
+
+//sort readyVector by FILO --> vectorP[0] = last, vectorP[n-1] = first
+//ordering by priority
+bool compareProcessPriority(Process a, Process b)
+{
+	return (a.priority > b.priority);
 }
 
 void ReadProcess(string input, vector<Process>& vectorP)
@@ -66,6 +91,7 @@ void ReadProcess(string input, vector<Process>& vectorP)
 	}
 }
 
+//code is folded! (must select the - --> edit --> code folding --> unfold)
 void ShortestJobFirst(vector<Process>& vectorP)
 {
 	queue<Process> runningQ;
@@ -92,11 +118,14 @@ void ShortestJobFirst(vector<Process>& vectorP)
 	//begin simulation cycle: new --> ready --> running 
 	while(!vectorP.empty() || !readyVector.empty())
 	{
-		//queue vector by arrivalTime
-		while(vectorP.back().arrivalTime <= timer)
+		if(!vectorP.empty())
 		{
-			readyVector.push_back(vectorP.back());
-			vectorP.pop_back();
+			//queue vector by arrivalTime
+			while(vectorP.back().arrivalTime <= timer)
+			{
+				readyVector.push_back(vectorP.back());
+				vectorP.pop_back();
+			}
 		}
 
 		//if no Process has arrived during CPU running time
@@ -110,6 +139,110 @@ void ShortestJobFirst(vector<Process>& vectorP)
 
 		//only sorts the Processes in vector by burstTime
 		sort (readyVector.begin(), readyVector.end(), compareProcessBurst);
+
+		//pop last Process from readyVector simulates running process on CPU
+		timer += readyVector.back().burstTime;
+		
+		//calculating waiting time, saved to vector --> waitingTime
+		readyVector.back().terminationTime = timer;
+		readyVector.back().turnaroundTime = 
+			readyVector.back().terminationTime - readyVector.back().arrivalTime;
+		readyVector.back().waitingTime = 
+			readyVector.back().turnaroundTime - readyVector.back().burstTime;
+		waitingTime.push_back(readyVector.back().waitingTime);
+		
+		//print message each time a different process is scheduled on CPU
+		cout << "Time " << timer - readyVector.back().burstTime << 
+			" Process " << readyVector.back().processID << endl;
+		readyVector.pop_back();
+	}
+
+	//find worst wait time, and add total wait time
+	for(unsigned int i = 0; i < waitingTime.size(); i++)
+	{
+		if(waitingTime[i] > max)
+		{
+			max = waitingTime[i];
+		}
+		totalWait += waitingTime[i];
+	}
+	averageWait = (float)totalWait / waitingTime.size();
+
+	//print stats for SJF			
+	cout << "CPU Utilization: " << 
+		ceil(100 - ((float)idleTimer/(float)timer * 100)) << "%" << endl;
+	cout << "Average waiting time: " << setprecision(2) << fixed << 
+		averageWait << endl;
+	cout << "Worst-case waiting time: " << max << endl; 
+}
+
+/*TO DO: Why is the sort breaking????*/
+//code is folded! (must select the - --> edit --> code folding --> unfold)
+void NonPreemptive(vector<Process>& vectorP)
+{
+	cout << "where am I??" << endl;
+	vector<Process> readyVector;
+	vector<int> waitingTime;
+	int timer = 0;
+	int idleTimer = 0;
+	int max = 0;
+	int totalWait = 0;
+	float averageWait = 0;
+
+	//sort vectorP by FILO --> vectorP[0] = last, vectorP[n-1] = first
+	//sort by arrivalTime (if tie, priority is first, else pID)
+	sort (vectorP.begin(), vectorP.end(), compareProcessNP);
+
+	for(unsigned int i = 0; i < vectorP.size(); i++)
+	{
+		cout << vectorP[i].processID << " " << vectorP[i].arrivalTime << 
+		" " << vectorP[i].burstTime << " " << vectorP[i].priority << endl;
+	}
+
+	//check if any idle time before process begins
+	if(vectorP.back().arrivalTime > 0)
+	{
+		timer += vectorP.back().arrivalTime;
+		cout << "Time " << timer << " Idle " << endl;
+		idleTimer += (timer);
+	}
+
+	//begin simulation cycle: new --> ready --> running 
+	while(!vectorP.empty() || !readyVector.empty())
+	{
+		if(!vectorP.empty())
+		{
+			//queue vector by arrivalTime
+			while(vectorP.back().arrivalTime <= timer)
+			{
+				readyVector.push_back(vectorP.back());
+				vectorP.pop_back();
+			}
+		}
+		cout << "populated readyVector by arrivalTime" << endl;
+		for(unsigned int i = 0; i < readyVector.size(); i++)
+		{
+			cout << readyVector[i].processID << " " << readyVector[i].arrivalTime << 
+			" " << readyVector[i].burstTime << " " << readyVector[i].priority << endl;
+		}
+
+		//if no Process has arrived during CPU running time
+		if(readyVector.empty())
+		{
+			cout << "Time " << timer << " Idle " << endl;
+			idleTimer += (vectorP.back().arrivalTime - timer);
+			timer = vectorP.back().arrivalTime;
+			continue; 
+		}
+
+		//only sorts the Processes in vector by priority
+		sort (readyVector.begin(), readyVector.end(), compareProcessPriority);
+
+		for(unsigned int i = 0; i < readyVector.size(); i++)
+		{
+			cout << readyVector[i].processID << " " << readyVector[i].arrivalTime << 
+			" " << readyVector[i].burstTime << " " << readyVector[i].priority << endl;
+		}
 
 		//pop last Process from readyVector simulates running process on CPU
 		timer += readyVector.back().burstTime;
@@ -163,7 +296,11 @@ int main(int argc, char* argv[])
 	//read input file
 	ReadProcess(inputFilename, processes);
 
-	ShortestJobFirst(processes);
+	//ShortestJobFirst(processes);
+
+	//ShortestRemainingTimeFirst(processes);
+
+	NonPreemptive(processes);
 
 	//SchedulerSwitch(scheduleAlgoCall, processes);
 }
