@@ -7,7 +7,33 @@
 #include <vector>
 using namespace std;
 
+struct Set
+{
+	int sizeDataPortion;
+	int blockSize;
+	int associativity;
+	bool LRU;
+};
 
+int countConfigFile(string input)
+{
+	ifstream inputFile(input);
+	int countLines = 0;
+	string line;
+
+	//if file successfully opened, process it
+	if(inputFile.is_open())
+	{
+		while(getline(inputFile, line))
+		{
+			++countLines;
+		}
+		//cout << "number of lines in file = " << countLines << endl;
+	}
+	inputFile.close();
+
+	return countLines;
+}
 
 void ReadConfigFile(string input, int* ptrArgv)
 {
@@ -32,7 +58,8 @@ void ReadConfigFile(string input, int* ptrArgv)
 
 void ReadTraceFile(string input, vector<string>& vectArgv)
 {
-	// string s = "0xA";
+		/* *****DEBUGGING***** HEX TO STRING TO BITSET TO PRINT*/
+ // string s = "0xA";
  //    stringstream ss;
  //    ss << hex << s;
  //    unsigned n;
@@ -57,11 +84,9 @@ void ReadTraceFile(string input, vector<string>& vectArgv)
 		    bitset<16> b(n);	
 
 		    //process inputFile into vector
-		    vectArgv.push_back(b.to_string());  
-			
+		    vectArgv.push_back(b.to_string());  			
 		}
 	}
-
 	inputFile.close();
 }
 
@@ -76,25 +101,32 @@ int main(int argc, char* argv[])
 
 	string configFileArgv = argv[1];
 	string traceFileArgv = argv[2];
-	int *configFileArr = new int[4]; //array to store configuration file
+	int countLines;
 	vector<string> traceFileVec;
+	int *configFileArr;
+	countLines = countConfigFile(configFileArgv);
+	
+	configFileArr = new int[countLines]; //array to store configuration file
 
 	//read input file
 	ReadConfigFile(configFileArgv, configFileArr);
 
 	ReadTraceFile(traceFileArgv, traceFileVec);
 
+	/* *****DEBUGGING***** */
 	cout << "printing configFileArr:" << endl;
 	for(int i = 0; i < 4; i++)
 	{
 		cout << configFileArr[i] << endl;
 	}
-
+	/* *****DEBUGGING***** */
 	cout << "printing traceFileVec:" << endl;
 	for(int i = 0; i < traceFileVec.size(); i++)
 	{
 		cout << traceFileVec[i] << endl;
 	}
+
+	delete [] configFileArr;
 
 	return 0;
 }
