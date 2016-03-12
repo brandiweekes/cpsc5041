@@ -102,8 +102,9 @@ void ReadTraceFile(string input, vector<string>& vectArgv)
 	inputFile.close();
 }
 
+//helper function for instantiateCache()
 //for a 16-bit address, follow the rules for the associativity type
-void setupCacheWithSets(Cache c)
+void setupCacheWithSets(Cache c) /*check if instantiated sets within cache correctly!*/
 {
 	float offsetLog;
 	float setIndexLog;
@@ -135,13 +136,20 @@ void setupCacheWithSets(Cache c)
 
 	c.tagBits = 16 - c.blockOffsetBits - c.setIndexBits;
 
+/* *****DEBUGGING***** */
+	cout << "tagBits = " << c.tagBits << endl <<
+	"setIndexBits = " << c.setIndexBits << endl <<
+	"blockOffsetBits = " << c.blockOffsetBits << endl;
+
 	//instantiating number of sets for cache
 	for(int i = 0; i < c.numSets; i++)
 	{
 		Set s;
-		s.blocks = new string*[c.numSets];
+		c.sets.push_back(s); //
+		cout << "instantiating s.blocks as new string*[c.associativity]" << endl;
+		s.blocks = new string*[c.associativity];
 		
-		/* *****DEBUGGING***** */
+/* *****DEBUGGING***** */
 		cout << " inside set " << i << " of setupCacheWithSets " << endl;
 		
 		//instantiating array of n-way set block size (words per block)
@@ -149,7 +157,7 @@ void setupCacheWithSets(Cache c)
 		{
 			s.blocks[j] = new string[c.blockSize];
 			
-			/* *****DEBUGGING***** */
+/* *****DEBUGGING***** */
 			cout << "j = " << j << endl;
 			for(int j = 0; j < c.blockSize; j++)
 			{
@@ -157,12 +165,12 @@ void setupCacheWithSets(Cache c)
 			}
 			cout << endl;
 		}
+/* *****DEBUGGING***** */
 		cout << endl;
 	}	
-	cout << "tagBits = " << c.tagBits << endl <<
-	"setIndexBits = " << c.setIndexBits << endl <<
-	"blockOffsetBits = " << c.blockOffsetBits << endl;
-}
+	
+}//need to delete arrays as go? could there be a segfault?
+
 
 void instantiateCache(int* ptrConfigArr, Cache c, int count)
 {
@@ -183,7 +191,7 @@ void instantiateCache(int* ptrConfigArr, Cache c, int count)
 
 		//return 1
 	}
-}
+}//need to type cast trace file LRU as bool?
 
 
 
@@ -227,6 +235,11 @@ int main(int argc, char* argv[])
 	instantiateCache(configFileArr, cache, countLines);
 
 	delete [] configFileArr;
+
+	for(int i = 0; i < cache.numSets; i++)
+	{
+		delete [] cache.sets[i].blocks;
+	}
 
 	return 0;
 }
