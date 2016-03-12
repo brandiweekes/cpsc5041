@@ -121,9 +121,14 @@ void setupCacheWithSets(Cache c)
 		c.numSets = c.sizeDataPortion / c.blockSize;
 		c.associativity += 1; //1-way associative
 	}
-	else //n-way associative
+	else if(c.associativity > 1)//n-way associative
 	{
 		c.numSets = c.sizeDataPortion / (c.blockSize * c.associativity);
+	}
+	else
+	{
+		cout<<"ERROR: Configuration File line 3 (must be value 0, 1, 2 or 4)"<<
+		endl;
 	}
 	setIndexLog = (float)c.numSets;
 	c.setIndexBits = (int)log2(setIndexLog);
@@ -154,12 +159,10 @@ void setupCacheWithSets(Cache c)
 		}
 		cout << endl;
 	}	
+	cout << "tagBits = " << c.tagBits << endl <<
+	"setIndexBits = " << c.setIndexBits << endl <<
+	"blockOffsetBits = " << c.blockOffsetBits << endl;
 }
-	// else
-	// {
-	// 	cout<<"ERROR: Configuration File line 3 (must be value 0, 1, 2 or 4)"<<
-	// 	endl;
-	// }
 
 void instantiateCache(int* ptrConfigArr, Cache c, int count)
 {
@@ -174,10 +177,11 @@ void instantiateCache(int* ptrConfigArr, Cache c, int count)
 	}
 	else
 	{
-		cout << "Check Configuration File: " <<
-		"should be length 4 (size, blockSize, associativity, LRU)" << endl;
+		/*cerr*/cout << "Check Configuration File: " <<
+		"should be length 4 (size, blockSize, associativity, LRU)" << endl << 
+		"Update instantiateCache function" << endl;
 
-		cout << "Update instantiateCache function" << endl;
+		//return 1
 	}
 }
 
