@@ -7,12 +7,15 @@
 #include <vector>
 #include <math.h> /* log2 */
 #include <ctime>
+#include <ratio>
+#include <chrono>
 using namespace std;
+using namespace std::chrono;
 
 struct Block
 {
 	string tagID;
-	time_t now;
+	std::chrono::high_resolution_clock::time_point now;
 };
 
 struct Set
@@ -33,6 +36,8 @@ struct Cache
 	int blockOffsetBits; //number of bits for block offset
 	vector<Set> sets;
 	vector<string> addressHitMiss;
+	std::chrono::high_resolution_clock::time_point begin;
+
 };
 
 int countConfigFile(string input)
@@ -116,6 +121,7 @@ void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache corr
 	float offsetLog;
 	float setIndexLog;
 
+	
 	offsetLog = (float)c.blockSize;		
 	c.blockOffsetBits = (int)log2(offsetLog);
 
@@ -161,13 +167,17 @@ void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache corr
 		//instantiating array of n-way set block size (words per block)
 		for(int j = 0; j < c.associativity; j++)
 		{
-			c.sets[i].blocks[j].now = time(0);
+			c.sets[i].blocks[j].now = std::chrono::high_resolution_clock::now();
+
+
 			c.sets[i].blocks[j].tagID = "null";
 
 			// convert now to string form
-		   char* dt = ctime(&c.sets[i].blocks[j].now);
+		   duration<double> time_span = duration_cast<duration<double> >(c.sets[i].blocks[j].now - c.begin);
+		   //string timeNow = std::chrono::duration_cast<std::chrono::nanoseconds>(c.sets[i].blocks[j].now - begin).count()
+		   
 
-		   cout << "Block initialized date and time is: " << dt << endl;
+		   cout << "Block initialized date and time is: " << time_span.count() << endl;
 		}
 	}		
 }//need to delete arrays as go? could there be a segfault?
@@ -175,6 +185,7 @@ void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache corr
 
 void instantiateCache(int* ptrConfigArr, Cache& c, int count)
 {
+	c.begin = std::chrono::high_resolution_clock::now();
 	if(count == 4)
 	{
 		c.sizeDataPortion = ptrConfigArr[0];
@@ -235,7 +246,9 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 		{
 			if(s.blocks[j].tagID == t.to_string()) //found it
 			{
+
 				cout << s.blocks[j].tagID << " HIT!" << endl; 
+				s.blocks[j].now = std::chrono::high_resolution_clock::now();
 				c.addressHitMiss.push_back("hit");
 				break;
 			}
@@ -245,11 +258,13 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 				// bitset<16> t(tag);
 
 				s.blocks[j].tagID = t.to_string();
-				s.blocks[j].now = time(0);
+				s.blocks[j].now = std::chrono::high_resolution_clock::now();
 				cout << s.blocks[j].tagID << " MISS!" << endl;
-				char* dt = ctime(&s.blocks[j].now);
-		   		cout << "Block MISS date and time is: " << dt << endl;
-
+				
+				duration<double> time_span = duration_cast<duration<double> >(s.blocks[j].now - c.begin);
+		   		cout << "Block MISS date and time is: " << time_span.count() << endl;
+		
+			    cout << "Block initialized date and time is: " << time_span.count() << endl;
 				c.addressHitMiss.push_back("miss");
 				break;
 			}			
@@ -257,13 +272,25 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 			{
 				for(int i = 0; i < c.associativity; i++)
 				{
+		   		duration<double> time_span1 = duration_cast<duration<double> >(s.blocks[i].now - c.begin);
+		   		duration<double> time_span2 = duration_cast<duration<double> >(s.blocks[indexLRUeviction].now - c.begin);
+
+					cout << "LRU CHECK " << time_span1.count() <<" < " << time_span2.count() << endl;
+					
+
 					if(s.blocks[i].now < s.blocks[indexLRUeviction].now)
 					{
+
 						indexLRUeviction = i;
 					}
 				}
+				cout << "indexLRUeviction is " << indexLRUeviction << endl;
 				s.blocks[indexLRUeviction].tagID = t.to_string();
 				cout << s.blocks[indexLRUeviction].tagID << " MISS!" << endl;
+		   		s.blocks[indexLRUeviction].now = std::chrono::high_resolution_clock::now();
+		   		duration<double> time_span3 = duration_cast<duration<double> >(s.blocks[indexLRUeviction].now - c.begin);
+
+		   		cout << "LRU Block MISS date and time is: " << time_span3.count() << endl;
 				c.addressHitMiss.push_back("miss");
 			}
 		}	
