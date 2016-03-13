@@ -12,34 +12,37 @@
 using namespace std;
 using namespace std::chrono;
 
+//Cache is made up of Sets which is made up of Blocks
 struct Block
 {
-	string tagID;
-	std::chrono::high_resolution_clock::time_point now;
+	string tagID; //16-bit address reference tag
+	std::chrono::high_resolution_clock::time_point now; //LRU eviction
 };
 
+//Cache is made up of Sets
 struct Set
 {
-	int setIndex; 
-	Block* blocks;
+	int setIndex; //index of set within Cache
+	Block* blocks; //array of Block structs within Set
 };
 
+//Cache configurations are stored to determine Sets and Blocks
 struct Cache
 {
-	int sizeDataPortion;
-	int blockSize;
-	int associativity;
-	bool LRU;
+	int sizeDataPortion; // 16, 32, 64 word cache
+	int blockSize; //2 or 4 word
+	int associativity; //direct mapped = 0, fully assoc = 1, n-way = n
+	bool LRU; //uses LRU eviction = 1, no LRU = 0
 	int numSets; //number of sets (fully associative = number of blocks)
 	int tagBits; //number of bits for tag
 	int setIndexBits; //number of bits for set index
 	int blockOffsetBits; //number of bits for block offset
-	vector<Set> sets;
-	vector<string> addressHitMiss;
-	std::chrono::high_resolution_clock::time_point begin;
-
+	vector<Set> sets; //vector of Sets
+	vector<string> addressHitMiss; //store if each reference is a hit or miss
+	std::chrono::high_resolution_clock::time_point begin; //blocks instantiated
 };
 
+//determines the length of lines in configFile
 int countConfigFile(string input)
 {
 	ifstream inputFile(input);
@@ -53,17 +56,16 @@ int countConfigFile(string input)
 		{
 			++countLines;
 		}
-		//cout << "number of lines in file = " << countLines << endl;
 	}
 	inputFile.close();
 
 	return countLines;
 }
 
+//process contents of ConfigFile to ptrArray
 void ReadConfigFile(string input, int* ptrArgv)
 {
 	ifstream inputFile(input);
-	//int size, block, assoc, replacement;
 	int index = 0;
 	int info;
 
@@ -77,21 +79,12 @@ void ReadConfigFile(string input, int* ptrArgv)
 			index++;
 		}
 	}
-
 	inputFile.close();
 }
 
+//process contents of traceFile to vector
 void ReadTraceFile(string input, vector<string>& vectArgv)
 {
-		/* *****DEBUGGING***** HEX TO STRING TO BITSET TO PRINT*/
-	 // string s = "0xA";
-	 //    stringstream ss;
-	 //    ss << hex << s;
-	 //    unsigned n;
-	 //    ss >> n;
-	 //    bitset<32> b(n);
-	 //    // outputs "00000000000000000000000000001010"
-	 //    cout << b.to_string() << endl;
     ifstream inputFile(input);
 	string trace;
 
@@ -118,27 +111,32 @@ void ReadTraceFile(string input, vector<string>& vectArgv)
 //for a ***16-bit*** address, follow the rules for the associativity type
 void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache correctly!*/
 {
-	float offsetLog;
-	float setIndexLog;
+	float offsetLog; //determines 16-bit address bits for block offset
+	float setIndexLog; //determines 16-bit address bits for set index
 
-	
+	//how many bits in block offset
 	offsetLog = (float)c.blockSize;		
 	c.blockOffsetBits = (int)log2(offsetLog);
 
+	//update cache configurations based upon associativity
 	if(c.associativity == 1) //fully associative
 	{
-		c.numSets = c.associativity;
-		//c.associativity = c.blockSize; //n blocks = n-way associative
-		c.associativity = c.sizeDataPortion / c.blockSize;
+		//1 set only
+		c.numSets = c.associativity; 
+		//n blocks = n-way associative
+		c.associativity = c.sizeDataPortion / c.blockSize; 
 	}
 	else if(c.associativity == 0) //direct mapped
 	{
-		c.numSets = c.sizeDataPortion / c.blockSize;
-		c.associativity += 1; //1-way associative
+		//num-sets same as num-blocks
+		c.numSets = c.sizeDataPortion / c.blockSize; 
+		//1-way associative
+		c.associativity += 1; 
 	}
 	else if(c.associativity > 1)//n-way associative
 	{
-		c.numSets = c.sizeDataPortion / (c.blockSize * c.associativity);
+		//standard algorithm for determining number of sets
+		c.numSets = c.sizeDataPortion / (c.blockSize * c.associativity); 
 	}
 	else
 	{
@@ -150,39 +148,24 @@ void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache corr
 
 	c.tagBits = 16 - c.blockOffsetBits - c.setIndexBits;
 
-	/* *****DEBUGGING***** */
-	cout << "tagBits = " << c.tagBits << endl <<
-	"setIndexBits = " << c.setIndexBits << endl <<
-	"blockOffsetBits = " << c.blockOffsetBits << endl;
-
 	//instantiating number of sets for cache
 	for(int i = 0; i < c.numSets; i++)
 	{
 		Set s;
-		c.sets.push_back(s); //
+		c.sets.push_back(s);
 		c.sets[i].setIndex = i;
 		
-		c.sets[i].blocks = new Block[c.associativity];
-		
 		//instantiating array of n-way set block size (words per block)
+		c.sets[i].blocks = new Block[c.associativity];
 		for(int j = 0; j < c.associativity; j++)
 		{
-			c.sets[i].blocks[j].now = std::chrono::high_resolution_clock::now();
-
-
+			c.sets[i].blocks[j].now =std::chrono::high_resolution_clock::now();
 			c.sets[i].blocks[j].tagID = "null";
-
-			// convert now to string form
-		   duration<double> time_span = duration_cast<duration<double> >(c.sets[i].blocks[j].now - c.begin);
-		   //string timeNow = std::chrono::duration_cast<std::chrono::nanoseconds>(c.sets[i].blocks[j].now - begin).count()
-		   
-
-		   cout << "Block initialized date and time is: " << time_span.count() << endl;
 		}
 	}		
-}//need to delete arrays as go? could there be a segfault?
+}
 
-
+//call from main(), check parameter valid, send to helper setupCacheWithSets()
 void instantiateCache(int* ptrConfigArr, Cache& c, int count)
 {
 	c.begin = std::chrono::high_resolution_clock::now();
@@ -210,87 +193,66 @@ void instantiateCache(int* ptrConfigArr, Cache& c, int count)
 
 		//return 1
 	}
-}//need to type cast trace file LRU as bool?
+}
 
+//cache has initialized already with configurations for:
+// desired cache and breakdown of addresses by bits
+//stores hit/miss info in cache vector to be printed out at end of program
 void cacheSimulator(Cache& c, vector<string>& addresses)
 {
 	//find set
-	string set;
-	string tag;
-	string a; //address
-	int indexSet;
-	//int indexBlock;
-	int indexLRUeviction = 0;
-	Set s;
-	//Block b;
+	string a; //address from trace file vector
+	string set; //address setID portion
+	int indexSet; //convert string setID to int
+	Set s; //local variable ptr to the set within cache to search for hitMiss
+	string tag; //address tagID portion
+	int indexLRUeviction = 0;	
 
-	cout << "inside cacheSimulator" << endl;
-
+	//check each address, update cache memory, update cache miss/hit
 	for(int i = 0; i < addresses.size(); i++)
 	{
-		a = addresses.at(i); //cout << a << endl; <--works
-		set = a.substr (c.tagBits, c.setIndexBits); //cout << set << endl; <--works
+		a = addresses.at(i);
 
-		bitset<16> b(set);	//cout << b.to_ulong() << endl;
-
+		set = a.substr (c.tagBits, c.setIndexBits);//determine address setIndex 
+		bitset<16> b(set);
 		indexSet = b.to_ulong();
-		
-		s = c.sets.at(indexSet);
 
-		tag = a.substr (0, c.tagBits);
+		s = c.sets.at(indexSet); //set found, working within set of substring
+
+		tag = a.substr (0, c.tagBits); //determine tag
 		bitset<16> t(tag);
 
-		cout << "indexSet = " << indexSet << endl;
-
+		//Set has been determined, now check the blocks within that set
 		for(int j = 0; j < c.associativity; j++)
 		{
-			if(s.blocks[j].tagID == t.to_string()) //found it
-			{
-
-				cout << s.blocks[j].tagID << " HIT!" << endl; 
+			if(s.blocks[j].tagID == t.to_string()) //found tag = hit
+			{ 
 				s.blocks[j].now = std::chrono::high_resolution_clock::now();
 				c.addressHitMiss.push_back("hit");
-				break;
+				break; //don't need to check anymore
 			}
 			else if(s.blocks[j].tagID == "null") //put in first available null
-			{
-				// tag = a.substr (0, c.tagBits);
-				// bitset<16> t(tag);
-
+			{ //if a null is found, the blocks after guaranteed null
 				s.blocks[j].tagID = t.to_string();
 				s.blocks[j].now = std::chrono::high_resolution_clock::now();
-				cout << s.blocks[j].tagID << " MISS!" << endl;
-				
-				duration<double> time_span = duration_cast<duration<double> >(s.blocks[j].now - c.begin);
-		   		cout << "Block MISS date and time is: " << time_span.count() << endl;
-		
-			    cout << "Block initialized date and time is: " << time_span.count() << endl;
 				c.addressHitMiss.push_back("miss");
-				break;
+				break; //don't need to check anymore
 			}			
-			else if(j+1 == c.associativity) //LRU
+			else if(j+1 == c.associativity) //no tags match = miss, LRU
 			{
+				//search through blocks, find oldest timestamp
 				for(int i = 0; i < c.associativity; i++)
 				{
-		   		duration<double> time_span1 = duration_cast<duration<double> >(s.blocks[i].now - c.begin);
-		   		duration<double> time_span2 = duration_cast<duration<double> >(s.blocks[indexLRUeviction].now - c.begin);
-
-					cout << "LRU CHECK " << time_span1.count() <<" < " << time_span2.count() << endl;
-					
-
+		   			//update indexLRUeviction (start at 0) if an older timestamp found
 					if(s.blocks[i].now < s.blocks[indexLRUeviction].now)
 					{
 
 						indexLRUeviction = i;
 					}
 				}
-				cout << "indexLRUeviction is " << indexLRUeviction << endl;
+				//oldest timestamp is overwritten
 				s.blocks[indexLRUeviction].tagID = t.to_string();
-				cout << s.blocks[indexLRUeviction].tagID << " MISS!" << endl;
 		   		s.blocks[indexLRUeviction].now = std::chrono::high_resolution_clock::now();
-		   		duration<double> time_span3 = duration_cast<duration<double> >(s.blocks[indexLRUeviction].now - c.begin);
-
-		   		cout << "LRU Block MISS date and time is: " << time_span3.count() << endl;
 				c.addressHitMiss.push_back("miss");
 			}
 		}	
@@ -308,42 +270,31 @@ int main(int argc, char* argv[])
 
 	string configFileArgv = argv[1];
 	string traceFileArgv = argv[2];
-	int countLines;
-	vector<string> traceFileVec;
+	int countLines; //determines length of argv files
+	vector<string> traceFileVec; //vector to store trace file
 	int *configFileArr; //array to store configuration file
-	Cache cache;
+	Cache cache; //declaring Cache struct
 	
 	//count line length of input file to instantiate array
 	countLines = countConfigFile(configFileArgv);
 	configFileArr = new int[countLines]; 
 
-	//read input file
+	//read configuration file (stores cache configurations)
 	ReadConfigFile(configFileArgv, configFileArr);
 
+	//read trace file (stores addresses)
 	ReadTraceFile(traceFileArgv, traceFileVec);
 
-	/* *****DEBUGGING***** */
-	cout << "printing configFileArr:" << endl;
-	for(int i = 0; i < 4; i++)
-	{
-		cout << configFileArr[i] << endl;
-	}
-	/* *****DEBUGGING***** */
-	cout << "printing traceFileVec:" << endl;
-	for(int i = 0; i < traceFileVec.size(); i++)
-	{
-		cout << traceFileVec[i] << endl;
-	}
-	
+	//initialize all values of cache struct
 	instantiateCache(configFileArr, cache, countLines);
 
-	cout << "cache.setIndexBits " << cache.setIndexBits << endl;
-
+	//run cache program to indicate if each address reference is a hit or miss
 	cacheSimulator(cache, traceFileVec);
 
+	//print traceFile vector and hitMiss vector
 	for(int i = 0; i < traceFileVec.size(); i++)
 	{
-		bitset<16> bin_Hex(traceFileVec.at(i));  
+		bitset<16> bin_Hex(traceFileVec.at(i));  //convert traceFile back to hex
     	cout << "0x" << hex << uppercase << bin_Hex.to_ulong() << "		" << 
     	cache.addressHitMiss.at(i) << endl;
 	}
