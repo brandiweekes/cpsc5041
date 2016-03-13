@@ -10,7 +10,7 @@ using namespace std;
 
 struct Set
 {
-	string setIndex; 
+	int setIndex; 
 	string** blocks;
 };
 
@@ -72,14 +72,14 @@ void ReadConfigFile(string input, int* ptrArgv)
 void ReadTraceFile(string input, vector<string>& vectArgv)
 {
 		/* *****DEBUGGING***** HEX TO STRING TO BITSET TO PRINT*/
- // string s = "0xA";
- //    stringstream ss;
- //    ss << hex << s;
- //    unsigned n;
- //    ss >> n;
- //    bitset<32> b(n);
- //    // outputs "00000000000000000000000000001010"
- //    cout << b.to_string() << endl;
+	 // string s = "0xA";
+	 //    stringstream ss;
+	 //    ss << hex << s;
+	 //    unsigned n;
+	 //    ss >> n;
+	 //    bitset<32> b(n);
+	 //    // outputs "00000000000000000000000000001010"
+	 //    cout << b.to_string() << endl;
     ifstream inputFile(input);
 	string trace;
 
@@ -103,8 +103,8 @@ void ReadTraceFile(string input, vector<string>& vectArgv)
 }
 
 //helper function for instantiateCache()
-//for a 16-bit address, follow the rules for the associativity type
-void setupCacheWithSets(Cache c) /*check if instantiated sets within cache correctly!*/
+//for a ***16-bit*** address, follow the rules for the associativity type
+void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache correctly!*/
 {
 	float offsetLog;
 	float setIndexLog;
@@ -115,7 +115,8 @@ void setupCacheWithSets(Cache c) /*check if instantiated sets within cache corre
 	if(c.associativity == 1) //fully associative
 	{
 		c.numSets = c.associativity;
-		c.associativity = c.blockSize; //n blocks = n-way associative
+		//c.associativity = c.blockSize; //n blocks = n-way associative
+		c.associativity = c.sizeDataPortion / c.blockSize;
 	}
 	else if(c.associativity == 0) //direct mapped
 	{
@@ -136,7 +137,7 @@ void setupCacheWithSets(Cache c) /*check if instantiated sets within cache corre
 
 	c.tagBits = 16 - c.blockOffsetBits - c.setIndexBits;
 
-/* *****DEBUGGING***** */
+	/* *****DEBUGGING***** */
 	cout << "tagBits = " << c.tagBits << endl <<
 	"setIndexBits = " << c.setIndexBits << endl <<
 	"blockOffsetBits = " << c.blockOffsetBits << endl;
@@ -146,18 +147,23 @@ void setupCacheWithSets(Cache c) /*check if instantiated sets within cache corre
 	{
 		Set s;
 		c.sets.push_back(s); //
+		c.sets[i].setIndex = i;
+			/* *****DEBUGGING***** */
 		cout << "instantiating s.blocks as new string*[c.associativity]" << endl;
-		s.blocks = new string*[c.associativity];
-		
-/* *****DEBUGGING***** */
+		c.sets[i].blocks = new string*[c.associativity];
+	/* *****DEBUGGING***** */
 		cout << " inside set " << i << " of setupCacheWithSets " << endl;
 		
 		//instantiating array of n-way set block size (words per block)
 		for(int j = 0; j < c.associativity; j++)
 		{
-			s.blocks[j] = new string[c.blockSize];
+			c.sets[i].blocks[j] = new string[c.blockSize];
+			for(int k = 0; k < c.blockSize; k++)
+			{
+				c.sets[i].blocks[j][k] = "null";
+			}
 			
-/* *****DEBUGGING***** */
+	/* *****DEBUGGING***** */
 			cout << "j = " << j << endl;
 			for(int j = 0; j < c.blockSize; j++)
 			{
@@ -165,21 +171,27 @@ void setupCacheWithSets(Cache c) /*check if instantiated sets within cache corre
 			}
 			cout << endl;
 		}
-/* *****DEBUGGING***** */
+	/* *****DEBUGGING***** */
 		cout << endl;
-	}	
-	
+	}		
 }//need to delete arrays as go? could there be a segfault?
 
 
-void instantiateCache(int* ptrConfigArr, Cache c, int count)
+void instantiateCache(int* ptrConfigArr, Cache& c, int count)
 {
 	if(count == 4)
 	{
 		c.sizeDataPortion = ptrConfigArr[0];
 		c.blockSize = ptrConfigArr[1];
 		c.associativity = ptrConfigArr[2];
-		c.LRU = ptrConfigArr[3];
+		if(ptrConfigArr[3] == 1)
+		{
+			c.LRU = true;
+		}
+		else
+		{
+			c.LRU = false;
+		}
 
 		setupCacheWithSets(c);		
 	}
@@ -193,7 +205,56 @@ void instantiateCache(int* ptrConfigArr, Cache c, int count)
 	}
 }//need to type cast trace file LRU as bool?
 
+void cacheSimulator(Cache& c, vector<string>& addresses)
+{
+	//find set
+	string set;
+	string tag;
+	string a; //address
+	int indexSet;
+	Set s;
 
+	cout << "inside cacheSimulator" << endl;
+
+	cout << "(c.tagBits+1) " << (c.tagBits+1) << endl;
+	for(int i = 0; i < addresses.size(); i++)
+	{
+		a = addresses.at(i); //cout << a << endl; <--works
+		set = a.substr (c.tagBits, c.setIndexBits); //cout << set << endl; <--works
+
+		bitset<16> b(set);	//cout << b.to_ulong() << endl;
+
+		indexSet = b.to_ulong();
+		
+		s = c.sets.at(indexSet);
+
+		tag = a.substr (0, c.tagBits);
+		bitset<16> t(tag);
+
+		cout << "indexSet = " << indexSet << endl;
+		if(s.blocks[0][0] == "null" || s.blocks[0][0] != t.to_string())
+		{
+			// tag = a.substr (0, c.tagBits);
+			// bitset<16> t(tag);
+
+			s.blocks[0][0] = t.to_string();
+
+			cout << s.blocks[0][0] << " MISS!" << endl;
+		}
+		else if(s.blocks[0][0] == t.to_string())
+		{
+			cout << s.blocks[0][0] << " HIT!" << endl; 
+		}
+		
+		// foo.blocks[0][0] = "hello";
+		// cout << foo.blocks[0][0] << endl;
+
+		//cout << c.sets.at(indexSet).blocks[indexSet][0] << endl;
+		//if(c.sets.at(indexSet) != )
+
+	}
+
+}
 
 int main(int argc, char* argv[])
 {	
@@ -232,14 +293,19 @@ int main(int argc, char* argv[])
 	{
 		cout << traceFileVec[i] << endl;
 	}
+	
 	instantiateCache(configFileArr, cache, countLines);
+
+	cout << "cache.setIndexBits " << cache.setIndexBits << endl;
+
+	cacheSimulator(cache, traceFileVec);
 
 	delete [] configFileArr;
 
-	for(int i = 0; i < cache.numSets; i++)
-	{
-		delete [] cache.sets[i].blocks;
-	}
+	// for(int i = 0; i < cache.numSets; i++)
+	// {
+	// 	delete [] cache.sets[i].blocks;
+	// }
 
 	return 0;
 }
