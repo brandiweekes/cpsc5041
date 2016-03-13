@@ -209,6 +209,7 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 	string a; //address
 	int indexSet;
 	//int indexBlock;
+	int indexLRUeviction = 0;
 	Set s;
 	//Block b;
 
@@ -254,8 +255,15 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 			}			
 			else if(j+1 == c.associativity) //LRU
 			{
-				s.blocks[j].tagID = t.to_string();
-				cout << s.blocks[j].tagID << " MISS!" << endl;
+				for(int i = 0; i < c.associativity; i++)
+				{
+					if(s.blocks[i].now < s.blocks[indexLRUeviction].now)
+					{
+						indexLRUeviction = i;
+					}
+				}
+				s.blocks[indexLRUeviction].tagID = t.to_string();
+				cout << s.blocks[indexLRUeviction].tagID << " MISS!" << endl;
 				c.addressHitMiss.push_back("miss");
 			}
 		}	
@@ -308,7 +316,9 @@ int main(int argc, char* argv[])
 
 	for(int i = 0; i < traceFileVec.size(); i++)
 	{
-		cout << traceFileVec.at(i) << "		" << cache.addressHitMiss.at(i) << endl;
+		bitset<16> bin_Hex(traceFileVec.at(i));  
+    	cout << "0x" << hex << uppercase << bin_Hex.to_ulong() << "		" << 
+    	cache.addressHitMiss.at(i) << endl;
 	}
 	delete [] configFileArr;
 
