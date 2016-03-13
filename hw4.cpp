@@ -11,7 +11,7 @@ using namespace std;
 struct Set
 {
 	int setIndex; 
-	string** blocks;
+	string* blocks;
 };
 
 struct Cache
@@ -148,31 +148,14 @@ void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache corr
 		Set s;
 		c.sets.push_back(s); //
 		c.sets[i].setIndex = i;
-			/* *****DEBUGGING***** */
-		cout << "instantiating s.blocks as new string*[c.associativity]" << endl;
-		c.sets[i].blocks = new string*[c.associativity];
-	/* *****DEBUGGING***** */
-		cout << " inside set " << i << " of setupCacheWithSets " << endl;
+		
+		c.sets[i].blocks = new string[c.associativity];
 		
 		//instantiating array of n-way set block size (words per block)
 		for(int j = 0; j < c.associativity; j++)
 		{
-			c.sets[i].blocks[j] = new string[c.blockSize];
-			for(int k = 0; k < c.blockSize; k++)
-			{
-				c.sets[i].blocks[j][k] = "null";
-			}
-			
-	/* *****DEBUGGING***** */
-			cout << "j = " << j << endl;
-			for(int j = 0; j < c.blockSize; j++)
-			{
-				cout << "word " << j+1 << " ";
-			}
-			cout << endl;
+			c.sets[i].blocks[j] = "null";
 		}
-	/* *****DEBUGGING***** */
-		cout << endl;
 	}		
 }//need to delete arrays as go? could there be a segfault?
 
@@ -213,6 +196,8 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 	string a; //address
 	int indexSet;
 	Set s;
+	int foundTagIndex = 0;
+	bool foundTagBool = false;
 
 	cout << "inside cacheSimulator" << endl;
 
@@ -232,19 +217,30 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 		bitset<16> t(tag);
 
 		cout << "indexSet = " << indexSet << endl;
-		if(s.blocks[0][0] == "null" || s.blocks[0][0] != t.to_string())
-		{
-			// tag = a.substr (0, c.tagBits);
-			// bitset<16> t(tag);
 
-			s.blocks[0][0] = t.to_string();
-
-			cout << s.blocks[0][0] << " MISS!" << endl;
-		}
-		else if(s.blocks[0][0] == t.to_string())
+		for(int j = 0; j < c.associativity; j++)
 		{
-			cout << s.blocks[0][0] << " HIT!" << endl; 
-		}
+			if(s.blocks[j] == t.to_string()) //found it
+			{
+				cout << s.blocks[j] << " HIT!" << endl; 
+				break;
+			}
+			else if(s.blocks[j] == "null") //put in first available null
+			{
+				// tag = a.substr (0, c.tagBits);
+				// bitset<16> t(tag);
+
+				s.blocks[j] = t.to_string();
+
+				cout << s.blocks[j] << " MISS!" << endl;
+				break;
+			}			
+			else if(j+1 == c.associativity) //LRU
+			{
+				s.blocks[j] = t.to_string();
+				cout << s.blocks[j] << " MISS!" << endl;
+			}
+		}	
 		
 		// foo.blocks[0][0] = "hello";
 		// cout << foo.blocks[0][0] << endl;
