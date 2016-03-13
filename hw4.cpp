@@ -6,12 +6,19 @@
 #include <bitset>
 #include <vector>
 #include <math.h> /* log2 */
+#include <ctime>
 using namespace std;
+
+struct Block
+{
+	string tagID;
+	time_t now;
+};
 
 struct Set
 {
 	int setIndex; 
-	string* blocks;
+	Block* blocks;
 };
 
 struct Cache
@@ -149,12 +156,18 @@ void setupCacheWithSets(Cache& c) /*check if instantiated sets within cache corr
 		c.sets.push_back(s); //
 		c.sets[i].setIndex = i;
 		
-		c.sets[i].blocks = new string[c.associativity];
+		c.sets[i].blocks = new Block[c.associativity];
 		
 		//instantiating array of n-way set block size (words per block)
 		for(int j = 0; j < c.associativity; j++)
 		{
-			c.sets[i].blocks[j] = "null";
+			c.sets[i].blocks[j].now = time(0);
+			c.sets[i].blocks[j].tagID = "null";
+
+			// convert now to string form
+		   char* dt = ctime(&c.sets[i].blocks[j].now);
+
+		   cout << "Block initialized date and time is: " << dt << endl;
 		}
 	}		
 }//need to delete arrays as go? could there be a segfault?
@@ -195,13 +208,12 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 	string tag;
 	string a; //address
 	int indexSet;
+	//int indexBlock;
 	Set s;
-	int foundTagIndex = 0;
-	bool foundTagBool = false;
+	//Block b;
 
 	cout << "inside cacheSimulator" << endl;
 
-	cout << "(c.tagBits+1) " << (c.tagBits+1) << endl;
 	for(int i = 0; i < addresses.size(); i++)
 	{
 		a = addresses.at(i); //cout << a << endl; <--works
@@ -220,36 +232,34 @@ void cacheSimulator(Cache& c, vector<string>& addresses)
 
 		for(int j = 0; j < c.associativity; j++)
 		{
-			if(s.blocks[j] == t.to_string()) //found it
+			if(s.blocks[j].tagID == t.to_string()) //found it
 			{
-				cout << s.blocks[j] << " HIT!" << endl; 
+				cout << s.blocks[j].tagID << " HIT!" << endl; 
+				c.addressHitMiss.push_back("hit");
 				break;
 			}
-			else if(s.blocks[j] == "null") //put in first available null
+			else if(s.blocks[j].tagID == "null") //put in first available null
 			{
 				// tag = a.substr (0, c.tagBits);
 				// bitset<16> t(tag);
 
-				s.blocks[j] = t.to_string();
+				s.blocks[j].tagID = t.to_string();
+				s.blocks[j].now = time(0);
+				cout << s.blocks[j].tagID << " MISS!" << endl;
+				char* dt = ctime(&s.blocks[j].now);
+		   		cout << "Block MISS date and time is: " << dt << endl;
 
-				cout << s.blocks[j] << " MISS!" << endl;
+				c.addressHitMiss.push_back("miss");
 				break;
 			}			
 			else if(j+1 == c.associativity) //LRU
 			{
-				s.blocks[j] = t.to_string();
-				cout << s.blocks[j] << " MISS!" << endl;
+				s.blocks[j].tagID = t.to_string();
+				cout << s.blocks[j].tagID << " MISS!" << endl;
+				c.addressHitMiss.push_back("miss");
 			}
 		}	
-		
-		// foo.blocks[0][0] = "hello";
-		// cout << foo.blocks[0][0] << endl;
-
-		//cout << c.sets.at(indexSet).blocks[indexSet][0] << endl;
-		//if(c.sets.at(indexSet) != )
-
 	}
-
 }
 
 int main(int argc, char* argv[])
@@ -296,6 +306,10 @@ int main(int argc, char* argv[])
 
 	cacheSimulator(cache, traceFileVec);
 
+	for(int i = 0; i < traceFileVec.size(); i++)
+	{
+		cout << traceFileVec.at(i) << "		" << cache.addressHitMiss.at(i) << endl;
+	}
 	delete [] configFileArr;
 
 	// for(int i = 0; i < cache.numSets; i++)
